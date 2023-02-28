@@ -1,0 +1,7 @@
+[Desktop Entry]
+Version=1.0.0
+Name=FengHuang
+Name[Sensirion]=Morgan
+Exec=sudo python /home/pi/Code/Project_FengHuang/FengHuang.py
+Icon=/home/pi/Code/Project_FengHuang/sensirionlogo.png
+Type=Application

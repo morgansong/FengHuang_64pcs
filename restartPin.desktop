@@ -1,0 +1,6 @@
+[Desktop Entry]
+Version=1.0.1
+Name=restart
+Name[Sensirion]=Morgan
+Exec=sudo python /home/pi/Code/Project_FengHuang/restartPin.py
+Type=Application
