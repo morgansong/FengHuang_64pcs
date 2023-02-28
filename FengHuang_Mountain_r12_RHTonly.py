@@ -379,7 +379,7 @@ class GUI_DataShow():
                 
                 ##change the text display
                 for kk in range(len(label_64)):
-                    label_64[kk].configure(bg='white')
+                    label_64[kk].configure(bg='lime')
                     string_64[kk].set('n.c')
                     
                     for i in range(len(data_location)):
@@ -418,9 +418,9 @@ for j in range(len(frameList_Row)):
         
 for i in range(len(frame_64)):
     if len(str(i+1))==1:
-        Label(frame_64[i], text=" #0{}  ".format(i+1), bg='gray', relief='ridge').pack(fill='both', expand=True) #the blank is to freeze the GUI
+        Label(frame_64[i], text="       #0{}        ".format(i+1), bg='gray', relief='ridge').pack(fill='both', expand=True) #the blank is to freeze the GUI
     else:
-        Label(frame_64[i], text=" #{}  ".format(i+1), bg='gray', relief='ridge').pack(fill='both', expand=True)
+        Label(frame_64[i], text="       #{}        ".format(i+1), bg='gray', relief='ridge').pack(fill='both', expand=True)
     
     # l1 = Label(frame_64[i], bg='green')
     # l1.pack(fill='both', expand=True) #just for UI
