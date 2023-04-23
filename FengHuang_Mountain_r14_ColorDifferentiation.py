@@ -13,6 +13,8 @@ from tkinter import filedialog
 import ast
 
 
+print("color differenate: blue, deepskyublue, lime, yellow, red")
+
 
 
 print("setup GPIO")
