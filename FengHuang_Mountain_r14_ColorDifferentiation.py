@@ -27,7 +27,7 @@ GPIO.setup(pinReset, GPIO.OUT)
 
 
 ##Global parameters defination
-data_raw_64 = ['n.c']*64  # the value of the output of all ports, in case there is no 64 data for example 1 sensor is not connected 
+data_raw_64 = ['n.c.']*64  # the value of the output of all ports, in case there is no 64 data for example 1 sensor is not connected 
 data_location = [] # record all the location where is data
 color_64 = ["green"]*64  # the value of all 64pcs units
 string_64 = [] #list of all 64pcs StringVar()
@@ -37,7 +37,7 @@ label_64 = [] #list of all 64pcs labels
 SN_64 = [] #list the SN of all 64pcs sensor
 SN_diff = [] #list of how many different SN of connected sensors
 Location_SameSN = [] #list of location, same SN in one list, data format: [[], [], []]..... 
-all_data = ['n.c']*64 
+all_data = ['n.c.']*64  
 
 
 
@@ -185,7 +185,9 @@ class ReadMeasurement_SFA3x():
 
                         sn = sn.strip(b'\x00'.decode())    #filter NULL empty string
                         print("indivadual SN 1:", sn)
-                        SN_64.append(sn[0:4])
+
+                        if kk*8+channel < 60: 
+                            SN_64.append(sn[0:4])
                         
                         # print(sn)
                         self.uart_SNList[str(kk*8+channel)] =  'port'+str(kk*8+channel+1)+'_'+sn
@@ -204,7 +206,9 @@ class ReadMeasurement_SFA3x():
                             
                             sn = sn.strip(b'\x00'.decode())         #filter NULL empty string
                             print("indivadual SN 2:", sn)
-                            SN_64.append(sn[0:4])
+                             
+                            if kk*8+channel < 60: 
+                                SN_64.append(sn[0:4]) 
                             
                             time.sleep(0.01) #delay >5ms very important
                             # print(sn)
@@ -253,10 +257,11 @@ class ReadMeasurement_SFA3x():
                     # print(time.strftime("%Y-%m-%d,%H:%M:%S++++++>", time.localtime()), read)
                     
                     if len(read)==3:
-                        data_raw_64.append(round(read[0],1)) #first data is HCHO 
-                        all_data.append(str(round(read[0],1))+"/"+str(round(read[1],1))+"/"+str(round(read[2],1))) #humidity + temperature
+                        if kk*8+channel <60:
+                            data_raw_64.append(round(read[0],1)) #first data is HCHO 
                         data_location.append(kk*8+channel) #remember the location where has data
                         
+                        all_data.append(str(round(read[0],1))+"/"+str(round(read[1],1))+"/"+str(round(read[2],1))) #humidity + temperature
                         dataJson[str(kk*8+channel+1)] = read
                         self.uart_Datasend[str(kk*8+channel)] = read
                 except Exception as e:
@@ -356,6 +361,7 @@ class GUI_DataShow():
             print('SN number:', SN_64,len(SN_64))
             print('data_raw_64:', data_raw_64,len(data_raw_64))
             print('data_location:', data_location)
+            print('all_data:', all_data)
 
             if(len(SN_64)==len(data_raw_64)):
                 # get SN list
@@ -364,11 +370,19 @@ class GUI_DataShow():
                     if SN_64[i] not in SN_diff:
                         SN_diff.append(SN_64[i])
                 
+                # only run if the lot is same lot
+                if len(SN_diff)==1:  
+                    string_64[60].set('YES')
+                    label_64[60].config(fg="red")
+                else: 
+                    string_64[60].set('NO')
+                    label_64[60].config(fg="red")
+
                 Location_SameSN = []
                 Data_SameSN = []
                 for i in range(len(SN_diff)):
                     Location_SameSN.append([]) 
-                    Data_SameSN.append([]) 
+                    Data_SameSN.append([])
 
                 #prepare the list with the same SN in the list
                 for k in range(len(SN_diff)):
@@ -389,33 +403,54 @@ class GUI_DataShow():
                 
                 ##change the text display
                 for kk in range(len(label_64)):
-                    label_64[kk].configure(bg='white')
-                    string_64[kk].set('n.c')
+                    if kk < 60:
+                        label_64[kk].configure(bg='white')
+                        string_64[kk].set('n.c.')
+                    else: 
+                        label_64[kk].configure(bg='tan') 
                     
                     for i in range(len(data_location)):
                         if kk == data_location[i]:
                             string_64[kk].set(all_data[i])
-                
+
                 ##Change color display
-                ##red = data is beyond +/-40% of mean, or +/-50ppb
+                ##blue: below -50%
+                ##deepskyblue: -50% to -20%
+                ##lime: -20% to +20%
+                ##yellow: 20% to 50%
+                ##red: above 50%
                 if len(data_location)>0: #avoid no any sensor connected 
                     for i in range(len(Location_SameSN)): 
-                        middian = np.mean(Data_SameSN[i])
-                        for k in range(len(Data_SameSN[i])):
-                            if middian <=80:
-                                # print('less 80---', Data_SameSN[i][k],middian)
+                        middian = round(np.mean(Data_SameSN[i]),2)
+                        string_64[61].set(middian) # show the mean value in location 61, if two lot, the mean will show the last one
 
-                                if Data_SameSN[i][k] > middian-40 and Data_SameSN[i][k] < middian+40: 
+                        for k in range(len(Data_SameSN[i])):
+                            if middian <=100:
+                                # print('less 80---', Data_SameSN[i][k],middian)
+                                if Data_SameSN[i][k] < middian - 50:
+                                    label_64[Location_SameSN[i][k]].configure(bg='blue')
+                                elif Data_SameSN[i][k] > middian - 50 and Data_SameSN[i][k] < middian - 20 :
+                                    label_64[Location_SameSN[i][k]].configure(bg='deepskyblue')
+                                elif Data_SameSN[i][k] > middian - 20 and Data_SameSN[i][k] < middian + 20 :
                                     label_64[Location_SameSN[i][k]].configure(bg='lime')
-                                else: 
-                                    label_64[Location_SameSN[i][k]].configure(bg='red')
+                                elif Data_SameSN[i][k] > middian + 20 and Data_SameSN[i][k] < middian + 50 :
+                                    label_64[Location_SameSN[i][k]].configure(bg='yellow')
+                                elif Data_SameSN[i][k] > middian + 50:
+                                    label_64[Location_SameSN[i][k]].configure(bg='red') 
+
                             else: 
                                 # print('over 80---', Data_SameSN[i][k],middian, middian*0.6, middian*1.4)
-
-                                if Data_SameSN[i][k] > middian*0.5 and Data_SameSN[i][k] < middian*1.5: 
+                                # print('less 80---', Data_SameSN[i][k],middian)
+                                if Data_SameSN[i][k] < middian * 0.5:
+                                    label_64[Location_SameSN[i][k]].configure(bg='blue')
+                                elif Data_SameSN[i][k] > middian * 0.5 and Data_SameSN[i][k] < middian * 0.8 :
+                                    label_64[Location_SameSN[i][k]].configure(bg='deepskyblue')
+                                elif Data_SameSN[i][k] > middian * 0.8 and Data_SameSN[i][k] < middian * 1.2 :
                                     label_64[Location_SameSN[i][k]].configure(bg='lime')
-                                else: 
-                                    label_64[Location_SameSN[i][k]].configure(bg='red')
+                                elif Data_SameSN[i][k] > middian * 1.2 and Data_SameSN[i][k] < middian * 1.5 :
+                                    label_64[Location_SameSN[i][k]].configure(bg='yellow')
+                                elif Data_SameSN[i][k] > middian * 1.5:
+                                    label_64[Location_SameSN[i][k]].configure(bg='red') 
 
                     ####below code is for version r10
                     # for i in range(len(data_raw_64)):
@@ -473,11 +508,18 @@ for j in range(len(frameList_Row)):
         frame_64.append(f)
         
 for i in range(len(frame_64)):
-    if len(str(i+1))==1:
-        Label(frame_64[i], text="           #0{}            ".format(i+1), bg='gray', relief='ridge').pack(fill='both', expand=True) #the blank is to freeze the GUI
-    else:
-        Label(frame_64[i], text="           #{}            ".format(i+1), bg='gray', relief='ridge').pack(fill='both', expand=True)
-    
+    if i<60:
+        if len(str(i+1))==1:
+            Label(frame_64[i], text="           #0{}            ".format(i+1), bg='gray', relief='ridge').pack(fill='both', expand=True) #the blank is to freeze the GUI
+        else:
+            Label(frame_64[i], text="           #{}            ".format(i+1), bg='gray', relief='ridge').pack(fill='both', expand=True)
+     
+    if i==60: Label(frame_64[i], text="            _lot_          ", bg='tan', relief='ridge').pack(fill='both', expand=True)
+    if i==61: Label(frame_64[i], text="            _avg_        ", bg='tan', relief='ridge').pack(fill='both', expand=True)
+    if i==62: Label(frame_64[i], text="            _go1_        ", bg='tan', relief='ridge').pack(fill='both', expand=True)
+    if i==63: Label(frame_64[i], text="            _go2_        ", bg='tan', relief='ridge').pack(fill='both', expand=True)
+
+
     # l1 = Label(frame_64[i], bg='green')
     # l1.pack(fill='both', expand=True) #just for UI
     
