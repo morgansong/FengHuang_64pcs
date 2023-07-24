@@ -36,9 +36,12 @@ label_64 = [] #list of all 64pcs labels
 #label_64_down = [] #list of all 64pcs labels
 SN_64 = [] #list the SN of all 64pcs sensor
 SN_diff = [] #list of how many different SN of connected sensors
-Location_SameSN = [] #list of location, same SN in one list, data format: [[], [], []]..... 
+Location_SameSN = [] #list of location, same SN in one list, data format: [[], [], []]
 all_data = ['n.c.']*64  
 
+
+current_SN = []
+old_64SN = [] #if this changed, means sensor changed and need record once 
 
 
 
@@ -53,7 +56,8 @@ class ReadMeasurement_SFA3x():
         self.now = datetime.datetime.now()
         self.filename = r'/home/pi/DataLog/FengHuang_{}_{}_{}_{}_{}_{}.json'.format(self.now.year, str(self.now.month).zfill(2),str(self.now.day).zfill(2),str(self.now.hour).zfill(2),str(self.now.minute).zfill(2),str(self.now.second).zfill(2))
         
-        self.Flag_SN = True #disable this at 28Feb
+        self.Flag_SN = True #disable this at 28Feb #update 15May, SN continues to logging at files.
+        
         
         self.uart = serial.Serial(port="/dev/ttyAMA0", baudrate=9600)
         self.uart_Datasend = {}
@@ -152,8 +156,9 @@ class ReadMeasurement_SFA3x():
             f.write(str(data)+'\r\n')
                 
     def Start_Measurement(self):
-        global SN_64
+        global SN_64, current_SN
         SN_64 = [] 
+        current_SN=[]
         ##start the measurement for all sensors
         for kk, address in enumerate(self.address_TCA9548): 
             for channel in range(8):
@@ -178,20 +183,21 @@ class ReadMeasurement_SFA3x():
                     time.sleep(0.01) #delay >5ms very important
                     print('SFA3x_start_continuous_measurement 1')
                     # print('SFA3x_start_continuous_measurement 1: #',kk*8+channel,self.Flag_SN)
+                    # self.Write_toFile('#port'+str(kk*8+channel)+' ' +self.SFA3x_handler.SFA3x_SN_Read())
+                    
+                    sn = self.SFA3x_handler.SFA3x_SN_Read()
+
+                    sn = sn.strip(b'\x00'.decode())    #filter NULL empty string
+                    print("indivadual SN 1:", sn)
+
+                    if kk*8+channel < 60: 
+                        SN_64.append(sn[0:4])
+                    
+                    # print(sn)
+                    self.uart_SNList[str(kk*8+channel)] =  'port'+str(kk*8+channel+1)+'_'+sn
+                    current_SN.append('#port'+str(kk*8+channel+1)+' ' +sn)
+                        
                     if self.Flag_SN:
-                        # self.Write_toFile('#port'+str(kk*8+channel)+' ' +self.SFA3x_handler.SFA3x_SN_Read())
-                        
-                        sn = self.SFA3x_handler.SFA3x_SN_Read()
-
-                        sn = sn.strip(b'\x00'.decode())    #filter NULL empty string
-                        print("indivadual SN 1:", sn)
-
-                        if kk*8+channel < 60: 
-                            SN_64.append(sn[0:4])
-                        
-                        # print(sn)
-                        self.uart_SNList[str(kk*8+channel)] =  'port'+str(kk*8+channel+1)+'_'+sn
-                        
                         self.Write_toFile('#port'+str(kk*8+channel+1)+' ' +sn)
                         
                 except Exception as e:
@@ -200,20 +206,21 @@ class ReadMeasurement_SFA3x():
                         self.SFA3x_handler.SFA3x_start_continuous_measurement()
                         print('SFA3x_start_continuous_measurement 2')
                         # print('SFA3x_start_continuous_measurement 2: #',kk*8+channel,self.Flag_SN)
+                        # self.Write_toFile('#port'+str(kk*8+channel)+' '+self.SFA3x_handler.SFA3x_SN_Read()) 
+                        sn = self.SFA3x_handler.SFA3x_SN_Read()
+                        
+                        sn = sn.strip(b'\x00'.decode())         #filter NULL empty string
+                        print("indivadual SN 2:", sn)
+                            
+                        if kk*8+channel < 60: 
+                            SN_64.append(sn[0:4]) 
+                        
+                        time.sleep(0.01) #delay >5ms very important
+                        # print(sn)
+                        self.uart_SNList[str(kk*8+channel)] = 'port'+str(kk*8+channel+1)+'_'+sn
+                        current_SN.append('#port'+str(kk*8+channel+1)+' ' +sn)
+                            
                         if self.Flag_SN:
-                            # self.Write_toFile('#port'+str(kk*8+channel)+' '+self.SFA3x_handler.SFA3x_SN_Read()) 
-                            sn = self.SFA3x_handler.SFA3x_SN_Read()
-                            
-                            sn = sn.strip(b'\x00'.decode())         #filter NULL empty string
-                            print("indivadual SN 2:", sn)
-                             
-                            if kk*8+channel < 60: 
-                                SN_64.append(sn[0:4]) 
-                            
-                            time.sleep(0.01) #delay >5ms very important
-                            # print(sn)
-                            self.uart_SNList[str(kk*8+channel)] = 'port'+str(kk*8+channel+1)+'_'+sn
-                            
                             self.Write_toFile('#port'+str(kk*8+channel+1)+' ' +sn)
                             
                             
@@ -339,14 +346,29 @@ class GUI_DataShow():
         self.ThreadingExample()
         
     def Datachange(self):
-        global SN_64
+        global SN_64,old_64SN,current_SN
         
         S = ReadMeasurement_SFA3x() 
+        S.Start_Measurement()
+
+        old_64SN = current_SN
 
         while True:
             S.Start_Measurement()
             
-            # S.Flag_SN = False
+            #if list of all SN is changed, need record SN list into file 
+            old_64SN.sort()
+            current_SN.sort()
+
+            print("=====old_64SN=========>",old_64SN)
+            print("======current_SN========>",current_SN)
+ 
+
+            if old_64SN == current_SN:
+                S.Flag_SN = False
+            else: 
+                S.Flag_SN = True
+                old_64SN = current_SN
             
             S.UpdateValues()
 
@@ -428,8 +450,7 @@ class GUI_DataShow():
                         go2 = float(all_data[-2].split("/")[0])
 
                         for k in range(len(Data_SameSN[i])):
-                            if middian <=100:
-                                
+                            if middian <=80: 
                                 if middian > (go1+go2)/2.0-20 and middian < (go1+go2)/2.0+20: 
                                     # label_64[62].config(fg="lime")
                                     # label_64[63].config(fg="lime")
@@ -439,19 +460,39 @@ class GUI_DataShow():
                                     label_64[63].config(fg="red") 
 
                                 # print('less 80---', Data_SameSN[i][k],middian)
-                                if Data_SameSN[i][k] < middian - 50:
+                                if Data_SameSN[i][k] < middian - 40:
                                     label_64[Location_SameSN[i][k]].configure(bg='blue')
-                                if Data_SameSN[i][k] > middian - 50 and Data_SameSN[i][k] < middian - 20 :
+                                if Data_SameSN[i][k] >= middian - 40 and Data_SameSN[i][k] < middian - 20 :
                                     label_64[Location_SameSN[i][k]].configure(bg='deepskyblue')
-                                if Data_SameSN[i][k] > middian - 20 and Data_SameSN[i][k] < middian + 20 :
+                                if Data_SameSN[i][k] >= middian - 20 and Data_SameSN[i][k] <= middian + 20 :
                                     label_64[Location_SameSN[i][k]].configure(bg='lime')
-                                if Data_SameSN[i][k] > middian + 20 and Data_SameSN[i][k] < middian + 50 :
+                                if Data_SameSN[i][k] > middian + 20 and Data_SameSN[i][k] <= middian + 40 :
                                     label_64[Location_SameSN[i][k]].configure(bg='yellow')
-                                if Data_SameSN[i][k] > middian + 50:
+                                if Data_SameSN[i][k] > middian + 40:
                                     label_64[Location_SameSN[i][k]].configure(bg='red')
 
-                            else: 
+                            if middian >80 and middian<=100:
+                                if middian > (go1+go2)/2.0-20 and middian < (go1+go2)/2.0+20:
+                                    # label_64[62].config(fg="lime")
+                                    # label_64[63].config(fg="lime")
+                                    pass
+                                else:
+                                    label_64[62].config(fg="red")
+                                    label_64[63].config(fg="red")
 
+                                # print('less 80---', Data_SameSN[i][k],middian)
+                                if Data_SameSN[i][k] < middian * 0.5:
+                                    label_64[Location_SameSN[i][k]].configure(bg='blue')
+                                if Data_SameSN[i][k] >= middian * 0.5 and Data_SameSN[i][k] < middian - 20 :
+                                    label_64[Location_SameSN[i][k]].configure(bg='deepskyblue')
+                                if Data_SameSN[i][k] >= middian - 20 and Data_SameSN[i][k] <= middian + 20 :
+                                    label_64[Location_SameSN[i][k]].configure(bg='lime')
+                                if Data_SameSN[i][k] > middian + 20 and Data_SameSN[i][k] <= middian * 1.5 :
+                                    label_64[Location_SameSN[i][k]].configure(bg='yellow')
+                                if Data_SameSN[i][k] > middian * 1.5:
+                                    label_64[Location_SameSN[i][k]].configure(bg='red')
+
+                            if middian >100:
                                 if middian > (go1+go2)/2.0*0.8 and middian < (go1+go2)/2.0*1.2: 
                                     # label_64[62].config(fg="lime")
                                     # label_64[63].config(fg="lime")

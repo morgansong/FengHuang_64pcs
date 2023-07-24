@@ -428,8 +428,7 @@ class GUI_DataShow():
                         go2 = float(all_data[-2].split("/")[0])
 
                         for k in range(len(Data_SameSN[i])):
-                            if middian <=100:
-                                
+                            if middian <=80: 
                                 if middian > (go1+go2)/2.0-20 and middian < (go1+go2)/2.0+20: 
                                     # label_64[62].config(fg="lime")
                                     # label_64[63].config(fg="lime")
@@ -439,19 +438,39 @@ class GUI_DataShow():
                                     label_64[63].config(fg="red") 
 
                                 # print('less 80---', Data_SameSN[i][k],middian)
-                                if Data_SameSN[i][k] < middian - 50:
+                                if Data_SameSN[i][k] < middian - 40:
                                     label_64[Location_SameSN[i][k]].configure(bg='blue')
-                                if Data_SameSN[i][k] > middian - 50 and Data_SameSN[i][k] < middian - 20 :
+                                if Data_SameSN[i][k] >= middian - 40 and Data_SameSN[i][k] < middian - 20 :
                                     label_64[Location_SameSN[i][k]].configure(bg='deepskyblue')
-                                if Data_SameSN[i][k] > middian - 20 and Data_SameSN[i][k] < middian + 20 :
+                                if Data_SameSN[i][k] >= middian - 20 and Data_SameSN[i][k] <= middian + 20 :
                                     label_64[Location_SameSN[i][k]].configure(bg='lime')
-                                if Data_SameSN[i][k] > middian + 20 and Data_SameSN[i][k] < middian + 50 :
+                                if Data_SameSN[i][k] > middian + 20 and Data_SameSN[i][k] <= middian + 40 :
                                     label_64[Location_SameSN[i][k]].configure(bg='yellow')
-                                if Data_SameSN[i][k] > middian + 50:
+                                if Data_SameSN[i][k] > middian + 40:
                                     label_64[Location_SameSN[i][k]].configure(bg='red')
 
-                            else: 
+                            if middian >80 and middian<=100:
+                                if middian > (go1+go2)/2.0-20 and middian < (go1+go2)/2.0+20:
+                                    # label_64[62].config(fg="lime")
+                                    # label_64[63].config(fg="lime")
+                                    pass
+                                else:
+                                    label_64[62].config(fg="red")
+                                    label_64[63].config(fg="red")
 
+                                # print('less 80---', Data_SameSN[i][k],middian)
+                                if Data_SameSN[i][k] < middian * 0.5:
+                                    label_64[Location_SameSN[i][k]].configure(bg='blue')
+                                if Data_SameSN[i][k] >= middian * 0.5 and Data_SameSN[i][k] < middian - 20 :
+                                    label_64[Location_SameSN[i][k]].configure(bg='deepskyblue')
+                                if Data_SameSN[i][k] >= middian - 20 and Data_SameSN[i][k] <= middian + 20 :
+                                    label_64[Location_SameSN[i][k]].configure(bg='lime')
+                                if Data_SameSN[i][k] > middian + 20 and Data_SameSN[i][k] <= middian * 1.5 :
+                                    label_64[Location_SameSN[i][k]].configure(bg='yellow')
+                                if Data_SameSN[i][k] > middian * 1.5:
+                                    label_64[Location_SameSN[i][k]].configure(bg='red')
+
+                            if middian >100:
                                 if middian > (go1+go2)/2.0*0.8 and middian < (go1+go2)/2.0*1.2: 
                                     # label_64[62].config(fg="lime")
                                     # label_64[63].config(fg="lime")
