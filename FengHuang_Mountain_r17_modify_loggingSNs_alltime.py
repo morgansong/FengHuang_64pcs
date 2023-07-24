@@ -445,7 +445,7 @@ class GUI_DataShow():
                     for i in range(len(Location_SameSN)): 
                         middian = round(np.mean(Data_SameSN[i]),2)
                         string_64[61].set(middian) # show the mean value in location 61, if two lot, the mean will show the last one
-
+ 
                         go1 = float(all_data[-1].split("/")[0])
                         go2 = float(all_data[-2].split("/")[0])
 
